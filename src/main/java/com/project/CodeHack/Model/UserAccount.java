@@ -18,13 +18,16 @@ import java.util.Set;
 @Document(collation = "CodeHack")
 public class UserAccount {
     @Id
-    private String id;
+    private String  userId;
     @NotBlank
     private String username;
     @Min(value = 0, message = "Score must be greater than or equal to 0")
     @Max(100)
     private int score;
     private Set<String> badges = new HashSet<>();
+    public void addBadge(String badge) {
+        badges.add(badge);
+    }
 
 }
 
