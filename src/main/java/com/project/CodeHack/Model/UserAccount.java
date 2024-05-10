@@ -15,7 +15,7 @@ import java.util.Set;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collation = "CodeHack")
+@Document
 public class UserAccount {
     @Id
     private String  userId;

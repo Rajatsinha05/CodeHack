@@ -1,78 +1,89 @@
 package com.project.CodeHack.Service.Impl;
 
 import com.project.CodeHack.DTO.UserDto;
+import com.project.CodeHack.Mapper.UserMapper;
 import com.project.CodeHack.Model.UserAccount;
 import com.project.CodeHack.Repository.UserRepository;
 import com.project.CodeHack.Service.UserService;
+import com.project.CodeHack.exception.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
+
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public List<UserDto> getAllUsers() {
         List<UserAccount> userAccounts = userRepository.findAll();
-        return mapUserAccountsToDtos(userAccounts);
+        return userAccounts.stream()
+                .map(userMapper::mapUserAccountToDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public UserDto getUserById(String userId) {
         UserAccount userAccount = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
-        return mapUserAccountToDto(userAccount);
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return userMapper.mapUserAccountToDto(userAccount);
     }
 
     @Override
     public UserDto registerUser(UserDto userDto) {
-        UserAccount userAccount = mapDtoToUserAccount(userDto);
+        UserAccount userAccount = userMapper.mapDtoToUserAccount(userDto);
         UserAccount savedUserAccount = userRepository.save(userAccount);
-        return mapUserAccountToDto(savedUserAccount);
+        return userMapper.mapUserAccountToDto(savedUserAccount);
     }
 
     @Override
     public UserDto updateUserScore(String userId, int score) {
-        UserAccount userAccount = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
-        userAccount.setScore(score);
-        UserAccount updatedUserAccount = userRepository.save(userAccount);
-        return mapUserAccountToDto(updatedUserAccount);
+        UserAccount user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (score < 0 || score > 100) {
+            throw new IllegalArgumentException("Score must be between 0 and 100");
+        }
+
+        user.setScore(score);
+        UserAccount updatedUser = updateBadges(user);
+        UserAccount savedUser = userRepository.save(updatedUser);
+        return userMapper.mapUserAccountToDto(savedUser);
     }
 
     @Override
     public UserDto deleteUser(String userId) {
         UserAccount userAccount = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
-
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         userRepository.deleteById(userId);
-        return mapUserAccountToDto(userAccount);
+        return userMapper.mapUserAccountToDto(userAccount);
     }
 
+    private UserAccount updateBadges(UserAccount user) {
+        int newScore = user.getScore();
+        Set<String> badges = user.getBadges();
 
-    private UserDto mapUserAccountToDto(UserAccount userAccount) {
-        UserDto userDto = new UserDto();
-        userDto.setUserId(userAccount.getUserId());
-        userDto.setUsername(userAccount.getUsername());
-        userDto.setScore(userAccount.getScore());
-        return userDto;
-    }
+        if (newScore >= 60) {
+            badges.add("Code Master");
+        } else if (newScore >= 30) {
+            badges.add("Code Champ");
+        } else if (newScore >= 1) {
+            badges.add("Code Ninja");
+        }
 
-    private List<UserDto> mapUserAccountsToDtos(List<UserAccount> userAccounts) {
-        return userAccounts.stream()
-                .map(this::mapUserAccountToDto)
-                .collect(Collectors.toList());
-    }
-
-    private UserAccount mapDtoToUserAccount(UserDto userDto) {
-        UserAccount userAccount = new UserAccount();
-        userAccount.setUserId(userDto.getUserId());
-        userAccount.setUsername(userDto.getUsername());
-        userAccount.setScore(userDto.getScore());
-        return userAccount;
+        if (badges.size() > 3) {
+            throw new IllegalArgumentException("User can only have a maximum of three unique badges");
+        }
+        user.setBadges(badges);
+        return user;
     }
 }
