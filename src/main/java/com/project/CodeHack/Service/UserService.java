@@ -12,5 +12,5 @@ public interface UserService {
     UserDto getUserById(String userId);
     UserDto registerUser(UserDto UserDto);
     UserDto updateUserScore(String userId, int score);
-    void deleteUser(String userId);
+    UserDto deleteUser(String userId);
 }

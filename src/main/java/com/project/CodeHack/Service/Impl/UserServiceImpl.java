@@ -45,11 +45,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(String userId) {
+    public UserDto deleteUser(String userId) {
+        UserAccount userAccount = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
+
         userRepository.deleteById(userId);
+        return mapUserAccountToDto(userAccount);
     }
 
-    // Helper methods to map between DTOs and domain objects
 
     private UserDto mapUserAccountToDto(UserAccount userAccount) {
         UserDto userDto = new UserDto();
