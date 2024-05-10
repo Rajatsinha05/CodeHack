@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
-    List<UserAccount> getAllUsers();
-    UserAccount getUserById(String userId);
-    UserDto registerUser(UserAccount userAccount);
-    UserAccount updateUserScore(String userId, int score);
+    List<UserDto> getAllUsers();
+    UserDto getUserById(String userId);
+    UserDto registerUser(UserDto UserDto);
+    UserDto updateUserScore(String userId, int score);
     void deleteUser(String userId);
 }

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -15,28 +16,32 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Override
-    public List<UserAccount> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserDto> getAllUsers() {
+        List<UserAccount> userAccounts = userRepository.findAll();
+        return mapUserAccountsToDtos(userAccounts);
     }
 
     @Override
-    public UserAccount getUserById(String userId) {
-        return userRepository.findById(userId)
+    public UserDto getUserById(String userId) {
+        UserAccount userAccount = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
+        return mapUserAccountToDto(userAccount);
     }
 
     @Override
-    public UserDto registerUser(UserAccount user) {
-        UserAccount userData = userRepository.save(user);
-        return mapUserToDto(userData);
+    public UserDto registerUser(UserDto userDto) {
+        UserAccount userAccount = mapDtoToUserAccount(userDto);
+        UserAccount savedUserAccount = userRepository.save(userAccount);
+        return mapUserAccountToDto(savedUserAccount);
     }
 
     @Override
-    public UserAccount updateUserScore(String userId, int score) {
-        UserAccount account = userRepository.findById(userId)
+    public UserDto updateUserScore(String userId, int score) {
+        UserAccount userAccount = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User with ID " + userId + " not found"));
-        account.setScore(score);
-        return userRepository.save(account);
+        userAccount.setScore(score);
+        UserAccount updatedUserAccount = userRepository.save(userAccount);
+        return mapUserAccountToDto(updatedUserAccount);
     }
 
     @Override
@@ -44,11 +49,27 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(userId);
     }
 
-    private UserDto mapUserToDto(UserAccount user) {
+    // Helper methods to map between DTOs and domain objects
+
+    private UserDto mapUserAccountToDto(UserAccount userAccount) {
         UserDto userDto = new UserDto();
-        userDto.setUserId(user.getUserId());
-        userDto.setUsername(user.getUsername());
-        userDto.setScore(user.getScore());
+        userDto.setUserId(userAccount.getUserId());
+        userDto.setUsername(userAccount.getUsername());
+        userDto.setScore(userAccount.getScore());
         return userDto;
+    }
+
+    private List<UserDto> mapUserAccountsToDtos(List<UserAccount> userAccounts) {
+        return userAccounts.stream()
+                .map(this::mapUserAccountToDto)
+                .collect(Collectors.toList());
+    }
+
+    private UserAccount mapDtoToUserAccount(UserDto userDto) {
+        UserAccount userAccount = new UserAccount();
+        userAccount.setUserId(userDto.getUserId());
+        userAccount.setUsername(userDto.getUsername());
+        userAccount.setScore(userDto.getScore());
+        return userAccount;
     }
 }
